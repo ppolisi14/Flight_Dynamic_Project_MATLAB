@@ -1,0 +1,5 @@
+# Ignora tutti i file di backup MATLAB
+*.asv
+
+# Ignora tutti i file temporanei
+*.tmp
