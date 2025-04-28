@@ -1,5 +1,16 @@
 %% Esercizi 3.1 e 3.2: Cinematica dell'evoluzione di looping
-clc; close all; clear all;
+clc; close all;
+
+if exist('utils','dir') ~= 7
+    error('FolderNotFound', 'La cartella "utils" non esiste.');
+end
+
+% Aggiunge solo la cartella utils
+addpath('utils');
+
+if(exist("set_latex_interpreter.m",'file') ~= 2)
+    error('FunctionNotFound',' La funzione "%s" non esiste nel path', "set_latex_interpreter")
+end
 
 set_latex_interpreter;
 
@@ -19,15 +30,15 @@ z0 = -h0;
 q_max = convangvel(55,'deg/s','rad/s');  %rad/s
 
 tq_points = (0:0.075:1).*t_fin; %14 istanti t tra 0 e t_fin
+
 %si è costruita trial and error per ottenere manovra desiderata
 q_points = [0, 0.2*q_max, 0.6*q_max, q_max, q_max,...
-    q_max, q_max, q_max, q_max, 0.465*q_max, 0*q_max,...
+    q_max, q_max, 0.9*q_max, 0.98*q_max, 0.465*q_max, 0*q_max,...
     0*q_max, 0*q_max, 0];
 
-tu_points = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,...
-    0.8, 1]*t_fin;
-u_points = [u0, 0.95*u0, 0.9*u0, 0.86*u0, 0.82*u0,...
-    0.78*u0, 0.76*u0, 0.75*u0, 0.75*u0, 0.75*u0]; 
+tu_points = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,0.8, 1]*t_fin;
+u_points = [u0, 0.95*u0, 0.9*u0, 0.84*u0, 0.82*u0,...
+0.78*u0, 0.76*u0, 0.75*u0, 0.75*u0, 0.75*u0]; 
 
 % La @ definisce una funzione anonima nella variabile t. 
 %La @ crea funzioni senza aprire uno nuovo script, 
@@ -40,42 +51,65 @@ u_points = [u0, 0.95*u0, 0.9*u0, 0.86*u0, 0.82*u0,...
 %la presenza di angolo d'attacco e di derapata
 
 % Velocità angolari
-q = @(t) interp1(tq_points,q_points,t,'pchip');
+q = griddedInterpolant(tq_points, q_points,'pchip','none');
 p = @(t) t.*0; 
 r = @(t) t.*0; 
 %per semplicità si suppone che p,r siano identicamente nulle
 
 % Velocità lineari
-u = @(t) interp1(tu_points, u_points, t, 'pchip');
+u = griddedInterpolant(tu_points, u_points, 'pchip','none');
 v = @(t) t.*0; 
 w = @(t) t.*0;
 %per semplicità si suppone che v,w siano identicamente nulle
 
-%Vettore dei tempi
+%Vettore dei tempi (parametro simulazione)
 v_time = linspace(0,t_fin,200);
+
+%Precomputazione della serie in deg/s
+%q_deg = convangvel(q(v_time),'rad/s','deg/s');
+q_vals = q(v_time)*(180/pi);
+p_vals = p(v_time);
+r_vals = r(v_time);
+%Precomputazione della serie in m/s
+u_vals = u(v_time);
+v_vals = v(v_time);
+w_vals = w(v_time);
+%Precomputazione della serie in km/h
+u_vals_km = u(v_time)*3.6;
+v_vals_km = v(v_time)*3.6;
+w_vals_km = w(v_time)*3.6;
+
 
 %Plot delle storie temporali
 figure;
-plot(v_time,convangvel(q(v_time),'rad/s','deg/s')...
-    ,v_time,p(v_time),v_time,r(v_time),...
-    'LineWidth',1.5);
-grid on; xlabel('t (s)'); ylabel('($^{\circ}$/s)','rotation',0,...
-    "Position",[-0.81,42,-1]);
+plot(v_time,[q_vals;p_vals;r_vals],'LineWidth',1.5);
+grid on; 
+%Etichette e annotazioni
+xlabel('t (s)'); 
+ylabel('($^{\circ}$/s)','rotation',0,"Position",[-0.81,42,-1]);
 text(1.6,50,'q(t)'); text(3,5,'p(t)'); text(6,5,'r(t)');
 %legend('p(t)','q(t)','r(t)'); 
 ylim([-20 80]);
 % print('vang','-djpeg','-r1200');
 
 figure;
-plot(v_time,u(v_time),v_time,v(v_time),...
-    v_time,w(v_time),'LineWidth',1.5);
-grid on; xlabel('t (s)'); ylabel('(m/s)','rotation',0,...
-    "Position",[-0.81,42,-1]);
+plot(v_time,[u_vals;v_vals;w_vals],'LineWidth',1.5);
+grid on;
+%Etichette e annotazioni
+xlabel('t (s)'); ylabel('(m/s)','rotation',0,"Position",[-0.81,42,-1]);
 text(2,70,'u(t)'); text(1,5,'v(t)'); text(4,5,'w(t)');
 %legend('u(t)','v(t)','w(t)'); 
 ylim([-20 100]);
 % print('v','-djpeg','-r1200');
 
+figure;
+plot(v_time,[u_vals_km;v_vals_km;w_vals_km],'LineWidth',1.5);
+grid on; 
+%Etichette e annotazioni
+xlabel('t (s)'); ylabel('(km/h)','rotation',0,"Position",[-0.81,160,-1]);
+text(2,70,'u(t)'); text(1,5,'v(t)'); text(4,5,'w(t)');
+%legend('u(t)','v(t)','w(t)'); 
+ylim([-20 300]);
 
 %% RISOLUZIONE
 %Si risolvono le equazioni del quaternione con ode45
